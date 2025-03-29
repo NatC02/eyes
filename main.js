@@ -221,3 +221,120 @@ class Antenna extends THREE.Group {
     }
   }
   
+
+  // Robot Head replacing the bird Head
+class RobotHead extends THREE.Group {
+    constructor(camera) {
+      super();
+      this.camera = camera;
+      
+      // Create the main head cube
+      const headGeometry = new THREE.BoxGeometry(2.2, 2.5, 2);
+      const headMaterial = new THREE.MeshStandardMaterial({
+        color: 0x777777,
+        roughness: 0.4,
+        metalness: 0.8,
+      });
+      this.headMesh = new THREE.Mesh(headGeometry, headMaterial);
+      this.add(this.headMesh);
+      
+      // Add some details to the head - panel lines
+      const addDetailPanel = (width, height, depth, x, y, z) => {
+        const geometry = new THREE.BoxGeometry(width, height, depth);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0x555555,
+          roughness: 0.5,
+          metalness: 0.9
+        });
+        const panel = new THREE.Mesh(geometry, material);
+        panel.position.set(x, y, z);
+        this.add(panel);
+        return panel;
+      };
+      
+      // Add various panels for detail
+      addDetailPanel(2.3, 0.1, 1.5, 0, 0.8, 0.3);
+      addDetailPanel(2.3, 0.1, 1.5, 0, -0.3, 0.3);
+      addDetailPanel(1.8, 0.05, 2.1, 0, -1.0, 0);
+      
+      // Add a "mouth" grill
+      const grillGeometry = new THREE.PlaneGeometry(1.2, 0.3);
+      const grillMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.8,
+        metalness: 0.6,
+        side: THREE.DoubleSide
+      });
+      const grill = new THREE.Mesh(grillGeometry, grillMaterial);
+      grill.position.set(0, -0.7, 1.01);
+      this.add(grill);
+      
+      // Add grill lines
+      for (let i = 0; i < 6; i++) {
+        const lineGeometry = new THREE.PlaneGeometry(1.1, 0.02);
+        const lineMaterial = new THREE.MeshBasicMaterial({
+          color: 0x222222,
+          side: THREE.DoubleSide
+        });
+        const line = new THREE.Mesh(lineGeometry, lineMaterial);
+        line.position.set(0, -0.7 + (i * 0.06) - 0.15, 1.02);
+        this.add(line);
+      }
+      
+      // Add robot eyes
+      this.eyes = new RobotEyes();
+      this.eyes.position.z = 1;
+      this.eyes.position.y = 0.4;
+      this.add(this.eyes);
+      
+      // Add an antenna on top
+      this.antenna = new Antenna();
+      this.antenna.position.y = 1.25;
+      this.add(this.antenna);
+      
+      // Add ear-like structures
+      const earGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.5);
+      const earMaterial = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        roughness: 0.4,
+        metalness: 0.8
+      });
+      
+      // Left ear
+      this.leftEar = new THREE.Mesh(earGeometry, earMaterial);
+      this.leftEar.position.set(-1.25, 0.3, 0);
+      this.add(this.leftEar);
+      
+      // Right ear
+      this.rightEar = new THREE.Mesh(earGeometry, earMaterial);
+      this.rightEar.position.set(1.25, 0.3, 0);
+      this.add(this.rightEar);
+      
+      // Add subtle head movement
+      this.headMovement();
+    }
+    
+    headMovement() {
+      // Add subtle idle movement to make the robot feel more alive
+      const duration = 4000;
+      const headRotation = { x: 0, y: 0 };
+      
+      new TWEEN.Tween(headRotation)
+        .to({ 
+          x: THREE.MathUtils.degToRad(2), 
+          y: THREE.MathUtils.degToRad(5) 
+        }, duration)
+        .easing(TWEEN.Easing.Sinusoidal.InOut)
+        .onUpdate(() => {
+          this.rotation.x = headRotation.x;
+          this.rotation.y = headRotation.y;
+        })
+        .yoyo(true)
+        .repeat(Infinity)
+        .start();
+    }
+    
+    update() {
+      this.eyes.update();
+    }
+  }
