@@ -338,3 +338,51 @@ class RobotHead extends THREE.Group {
       this.eyes.update();
     }
   }
+
+  // Scene setup
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111122); // Darker blue background for a tech feel
+
+let camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1000);
+camera.position.set(2, 2, 8).setLength(8);
+
+let renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener("resize", event => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+let controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.minAzimuthAngle = -Math.PI * 0.4;
+controls.maxAzimuthAngle = Math.PI * 0.4;
+controls.minPolarAngle = Math.PI * 0.2;
+controls.maxPolarAngle = Math.PI * 0.7;
+
+// Add lights - use more dramatic lighting for the robot
+let mainLight = new THREE.DirectionalLight(0xffffff, Math.PI * 0.5);
+mainLight.position.set(1, 2, 3);
+scene.add(mainLight);
+
+let blueLight = new THREE.PointLight(0x0088ff, Math.PI * 0.5);
+blueLight.position.set(-3, 1, 2);
+scene.add(blueLight);
+
+let redLight = new THREE.PointLight(0xff4400, Math.PI * 0.3);
+redLight.position.set(3, -1, -2);
+scene.add(redLight);
+
+// Add an additional light to make the eyes pop more
+let eyeLight = new THREE.PointLight(0x00ffaa, Math.PI * 0.3);
+eyeLight.position.set(0, 0, 5);
+scene.add(eyeLight);
+
+scene.add(new THREE.AmbientLight(0x222233, Math.PI * 0.2));
+
+// Create the robot head
+let robotHead = new RobotHead(camera);
+scene.add(robotHead);
