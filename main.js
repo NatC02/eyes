@@ -159,3 +159,65 @@ class RobotEyes extends THREE.Group {
       });
     }
   }
+
+  // Robot Antenna
+class Antenna extends THREE.Group {
+    constructor() {
+      super();
+      
+      // Antenna base
+      const baseGeometry = new THREE.CylinderGeometry(0.1, 0.2, 0.3, 8);
+      const baseMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.4,
+        metalness: 0.8
+      });
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.y = 0.15;
+      this.add(base);
+      
+      // Antenna rod
+      const rodGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
+      const rodMaterial = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.4,
+        metalness: 0.8
+      });
+      const rod = new THREE.Mesh(rodGeometry, rodMaterial);
+      rod.position.y = 0.9;
+      this.add(rod);
+      
+      // Antenna tip light
+      const tipGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+      const tipMaterial = new THREE.MeshStandardMaterial({
+        color: 0xD8829D,
+        emissive: 0xD8829D,
+        emissiveIntensity: 1,
+        roughness: 0.2,
+        metalness: 0.5
+      });
+      this.tip = new THREE.Mesh(tipGeometry, tipMaterial);
+      this.tip.position.y = 1.5;
+      this.add(this.tip);
+      
+      // Start the blinking animation for the tip
+      this.blinkTip();
+    }
+    
+    blinkTip() {
+      // Pulse the antenna tip
+      const duration = 1000;
+      const intensity = { value: 1 };
+      
+      new TWEEN.Tween(intensity)
+        .to({ value: 0.2 }, duration)
+        .easing(TWEEN.Easing.Sinusoidal.InOut)
+        .onUpdate(() => {
+          this.tip.material.emissiveIntensity = intensity.value;
+        })
+        .yoyo(true)
+        .repeat(Infinity)
+        .start();
+    }
+  }
+  
