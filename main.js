@@ -348,7 +348,7 @@ class RobotHead extends THREE.Group {
     this.antenna.position.y = 1.25;
     this.add(this.antenna);
     
-    // Add ear-like structures
+    // Add ear-like structures that retract based on camera perspective
     const earGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.5);
     const earMaterial = new THREE.MeshStandardMaterial({
       color: 0x555555,
@@ -356,15 +356,41 @@ class RobotHead extends THREE.Group {
       metalness: 0.8
     });
     
-    // Left ear
+    // Create ear holders (fixed position parts that don't move)
+    const earHolderGeometry = new THREE.BoxGeometry(0.15, 0.8, 0.5);
+    const earHolderMaterial = new THREE.MeshStandardMaterial({
+      color: 0x444444,
+      roughness: 0.5,
+      metalness: 0.9
+    });
+    
+    // Left ear holder
+    this.leftEarHolder = new THREE.Mesh(earHolderGeometry, earHolderMaterial);
+    this.leftEarHolder.position.set(-1.1, 0.3, 0);
+    this.add(this.leftEarHolder);
+    
+    // Right ear holder
+    this.rightEarHolder = new THREE.Mesh(earHolderGeometry, earHolderMaterial);
+    this.rightEarHolder.position.set(1.1, 0.3, 0);
+    this.add(this.rightEarHolder);
+    
+    // Left ear (will retract)
     this.leftEar = new THREE.Mesh(earGeometry, earMaterial);
     this.leftEar.position.set(-1.25, 0.3, 0);
+    this.leftEarInitialX = -1.25; // Store initial position
+    this.leftEarRetractedX = -1.05; // Position when fully retracted
     this.add(this.leftEar);
     
-    // Right ear
+    // Right ear (will retract)
     this.rightEar = new THREE.Mesh(earGeometry, earMaterial);
     this.rightEar.position.set(1.25, 0.3, 0);
+    this.rightEarInitialX = 1.25; // Store initial position
+    this.rightEarRetractedX = 1.05; // Position when fully retracted
     this.add(this.rightEar);
+    
+    // Reference for ear retraction animation
+    this.leftEarRetraction = 0; // 0 = fully extended, 1 = fully retracted
+    this.rightEarRetraction = 0;
     
     // Add subtle head movement
     this.headMovement();
@@ -394,6 +420,61 @@ class RobotHead extends THREE.Group {
     this.eyes.update();
     // Pass camera to antenna for wiggle effect
     this.antenna.update(this.camera);
+    // Update ear retraction based on camera position
+    this.updateEarRetraction();
+  }
+  
+  updateEarRetraction() {
+    if (!this.camera) return;
+    
+    // Get camera position in local space
+    const cameraWorldPos = new THREE.Vector3();
+    this.camera.getWorldPosition(cameraWorldPos);
+    const cameraLocal = this.worldToLocal(cameraWorldPos.clone());
+    
+    // Calculate the viewing angle to determine ear retraction
+    // For left ear: camera on left side (-X) will cause retraction
+    // For right ear: camera on right side (+X) will cause retraction
+    
+    // Calculate normalized vector from robot to camera
+    const robotToCam = cameraLocal.clone().normalize();
+    
+    // Dot product with left and right directions to determine visibility
+    const leftDot = robotToCam.dot(new THREE.Vector3(-1, 0, 0));
+    const rightDot = robotToCam.dot(new THREE.Vector3(1, 0, 0));
+    
+    // Calculate retraction factor (0 = extended, 1 = retracted)
+    // We want the ear to retract when the camera is on the same side
+    const leftRetractionTarget = THREE.MathUtils.clamp(leftDot * 2, 0, 1);
+    const rightRetractionTarget = THREE.MathUtils.clamp(rightDot * 2, 0, 1);
+    
+    // Smooth the transitions for more natural movement
+    this.leftEarRetraction += (leftRetractionTarget - this.leftEarRetraction) * 0.1;
+    this.rightEarRetraction += (rightRetractionTarget - this.rightEarRetraction) * 0.1;
+    
+    // Apply retraction to ear positions
+    const leftEarX = THREE.MathUtils.lerp(
+      this.leftEarInitialX, 
+      this.leftEarRetractedX, 
+      this.leftEarRetraction
+    );
+    
+    const rightEarX = THREE.MathUtils.lerp(
+      this.rightEarInitialX, 
+      this.rightEarRetractedX, 
+      this.rightEarRetraction
+    );
+    
+    // Update ear positions
+    this.leftEar.position.x = leftEarX;
+    this.rightEar.position.x = rightEarX;
+    
+    // Scale the ears to create a "sliding in" effect
+    const leftEarScaleX = THREE.MathUtils.lerp(1, 0.25, this.leftEarRetraction);
+    const rightEarScaleX = THREE.MathUtils.lerp(1, 0.25, this.rightEarRetraction);
+    
+    this.leftEar.scale.x = leftEarScaleX;
+    this.rightEar.scale.x = rightEarScaleX;
   }
 }
 
