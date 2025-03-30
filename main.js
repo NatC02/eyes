@@ -74,272 +74,330 @@ class RobotEye extends THREE.Mesh {
 
 // Robot Eyes Group
 class RobotEyes extends THREE.Group {
-    constructor(camera, mouse) {
-      super();
-      
-      this.plane = new THREE.Plane();
-      this.planeNormal = new THREE.Vector3();
-      this.planePoint = new THREE.Vector3();
-      
-      this.pointer = new THREE.Vector2();
-      this.raycaster = new THREE.Raycaster();
-      
-      this.lookAt = new THREE.Vector3();
-      this.lastLookAt = new THREE.Vector3();
-      
-      this.clock = new THREE.Clock();
-      
-      this.blink = {value: 0};
-      
-      // Create two eyes with different colors
-      this.eyes = [
-          new RobotEye(0x32CD32), // Lime green
-          new RobotEye(0x32CD32)  // Lime green
-        ];
-      
-      this.eyes.forEach((eye, idx) => {
-        eye.position.x = 0.8 * (idx < 1 ? -1: 1);
-        eye.position.z = 0.1;
-        eye.scale.setScalar(idx < 1 ? 1 : 1);
-        this.add(eye);
-      });
-      
-      document.addEventListener("pointermove", event => {
-        this.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        this.pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      });
-      
-      this.blinking();
-    }
+  constructor(camera, mouse) {
+    super();
     
-    blinking() {
-      let duration = 200; // Faster blink for robot
-      let delay = Math.random() * 4000 + 3000;
-      this.blink.value = 0;
-      new TWEEN.Tween(this.blink).to({value: 1}, duration)
-        .delay(delay)
-        .easing(TWEEN.Easing.Quadratic.InOut)
-        .onComplete(() => {this.blinking()})
-        .start();
-    }
+    this.plane = new THREE.Plane();
+    this.planeNormal = new THREE.Vector3();
+    this.planePoint = new THREE.Vector3();
     
-    update() {
-      this.raycaster.setFromCamera(this.pointer, this.parent.camera);
-      
-      this.parent.camera.getWorldDirection(this.planeNormal);
-      this.planePoint.copy(this.planeNormal).setLength(5).add(this.parent.camera.position);
-      this.plane.setFromNormalAndCoplanarPoint(this.planeNormal, this.planePoint);
-      
-      this.raycaster.ray.intersectPlane(this.plane, this.lookAt);
-      
-      // Make robot eyes track the mouse with limited movement
-      let target = new THREE.Vector3().copy(this.lookAt);
-      let maxRotation = 0.2; // Limit how far the eyes can rotate
-      
-      this.eyes.forEach(eye => {
-        let eyeLocal = this.worldToLocal(target.clone());
-        
-        // Calculate how centered the mouse is to the eye's forward direction
-        let eyeDirection = new THREE.Vector3(0, 0, 1).applyQuaternion(eye.quaternion);
-        let eyeToTarget = new THREE.Vector3().subVectors(eyeLocal, eye.position).normalize();
-        let dotProduct = eyeDirection.dot(eyeToTarget);
-        
-        // Convert dot product to a 0-1 value (higher when more centered)
-        let trackingPrecision = Math.pow((dotProduct + 1) / 2, 2); // Squaring makes it more dramatic
-        
-        // Update the tracking intensity in the shader
-        if (eye.trackingIntensity) {
-          eye.trackingIntensity.value = trackingPrecision;
-        }
-        
-        // Calculate angle for eye rotation
-        let angle = Math.atan2(eyeLocal.x - eye.position.x, eyeLocal.z - eye.position.z);
-        angle = THREE.MathUtils.clamp(angle, -maxRotation, maxRotation);
-        eye.rotation.y = angle;
-      });
-    }
-  }
-
-  // Robot Antenna
-class Antenna extends THREE.Group {
-    constructor() {
-      super();
-      
-      // Antenna base
-      const baseGeometry = new THREE.CylinderGeometry(0.1, 0.2, 0.3, 8);
-      const baseMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.4,
-        metalness: 0.8
-      });
-      const base = new THREE.Mesh(baseGeometry, baseMaterial);
-      base.position.y = 0.15;
-      this.add(base);
-      
-      // Antenna rod
-      const rodGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
-      const rodMaterial = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        roughness: 0.4,
-        metalness: 0.8
-      });
-      const rod = new THREE.Mesh(rodGeometry, rodMaterial);
-      rod.position.y = 0.9;
-      this.add(rod);
-      
-      // Antenna tip light
-      const tipGeometry = new THREE.SphereGeometry(0.1, 16, 16);
-      const tipMaterial = new THREE.MeshStandardMaterial({
-        color: 0xD8829D,
-        emissive: 0xD8829D,
-        emissiveIntensity: 1,
-        roughness: 0.2,
-        metalness: 0.5
-      });
-      this.tip = new THREE.Mesh(tipGeometry, tipMaterial);
-      this.tip.position.y = 1.5;
-      this.add(this.tip);
-      
-      // Start the blinking animation for the tip
-      this.blinkTip();
-    }
+    this.pointer = new THREE.Vector2();
+    this.raycaster = new THREE.Raycaster();
     
-    blinkTip() {
-      // Pulse the antenna tip
-      const duration = 1000;
-      const intensity = { value: 1 };
-      
-      new TWEEN.Tween(intensity)
-        .to({ value: 0.2 }, duration)
-        .easing(TWEEN.Easing.Sinusoidal.InOut)
-        .onUpdate(() => {
-          this.tip.material.emissiveIntensity = intensity.value;
-        })
-        .yoyo(true)
-        .repeat(Infinity)
-        .start();
-    }
+    this.lookAt = new THREE.Vector3();
+    this.lastLookAt = new THREE.Vector3();
+    
+    this.clock = new THREE.Clock();
+    
+    this.blink = {value: 0};
+    
+    // Create two eyes with different colors
+    this.eyes = [
+        new RobotEye(0x32CD32), // Lime green
+        new RobotEye(0x32CD32)  // Lime green
+      ];
+    
+    this.eyes.forEach((eye, idx) => {
+      eye.position.x = 0.8 * (idx < 1 ? -1: 1);
+      eye.position.z = 0.1;
+      eye.scale.setScalar(idx < 1 ? 1 : 1);
+      this.add(eye);
+    });
+    
+    document.addEventListener("pointermove", event => {
+      this.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+      this.pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+    
+    this.blinking();
   }
   
-
-  // Robot Head replacing the bird Head
-class RobotHead extends THREE.Group {
-    constructor(camera) {
-      super();
-      this.camera = camera;
+  blinking() {
+    let duration = 200; // Faster blink for robot
+    let delay = Math.random() * 4000 + 3000;
+    this.blink.value = 0;
+    new TWEEN.Tween(this.blink).to({value: 1}, duration)
+      .delay(delay)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onComplete(() => {this.blinking()})
+      .start();
+  }
+  
+  update() {
+    this.raycaster.setFromCamera(this.pointer, this.parent.camera);
+    
+    this.parent.camera.getWorldDirection(this.planeNormal);
+    this.planePoint.copy(this.planeNormal).setLength(5).add(this.parent.camera.position);
+    this.plane.setFromNormalAndCoplanarPoint(this.planeNormal, this.planePoint);
+    
+    this.raycaster.ray.intersectPlane(this.plane, this.lookAt);
+    
+    // Make robot eyes track the mouse with limited movement
+    let target = new THREE.Vector3().copy(this.lookAt);
+    let maxRotation = 0.2; // Limit how far the eyes can rotate
+    
+    this.eyes.forEach(eye => {
+      let eyeLocal = this.worldToLocal(target.clone());
       
-      // Create the main head cube
-      const headGeometry = new THREE.BoxGeometry(2.2, 2.5, 2);
-      const headMaterial = new THREE.MeshStandardMaterial({
-        color: 0x777777,
-        roughness: 0.4,
-        metalness: 0.8,
-      });
-      this.headMesh = new THREE.Mesh(headGeometry, headMaterial);
-      this.add(this.headMesh);
+      // Calculate how centered the mouse is to the eye's forward direction
+      let eyeDirection = new THREE.Vector3(0, 0, 1).applyQuaternion(eye.quaternion);
+      let eyeToTarget = new THREE.Vector3().subVectors(eyeLocal, eye.position).normalize();
+      let dotProduct = eyeDirection.dot(eyeToTarget);
       
-      // Add some details to the head - panel lines
-      const addDetailPanel = (width, height, depth, x, y, z) => {
-        const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x555555,
-          roughness: 0.5,
-          metalness: 0.9
-        });
-        const panel = new THREE.Mesh(geometry, material);
-        panel.position.set(x, y, z);
-        this.add(panel);
-        return panel;
-      };
+      // Convert dot product to a 0-1 value (higher when more centered)
+      let trackingPrecision = Math.pow((dotProduct + 1) / 2, 2); // Squaring makes it more dramatic
       
-      // Add various panels for detail
-      addDetailPanel(2.3, 0.1, 1.5, 0, 0.8, 0.3);
-      addDetailPanel(2.3, 0.1, 1.5, 0, -0.3, 0.3);
-      addDetailPanel(1.8, 0.05, 2.1, 0, -1.0, 0);
-      
-      // Add a "mouth" grill
-      const grillGeometry = new THREE.PlaneGeometry(1.2, 0.3);
-      const grillMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.8,
-        metalness: 0.6,
-        side: THREE.DoubleSide
-      });
-      const grill = new THREE.Mesh(grillGeometry, grillMaterial);
-      grill.position.set(0, -0.7, 1.01);
-      this.add(grill);
-      
-      // Add grill lines
-      for (let i = 0; i < 6; i++) {
-        const lineGeometry = new THREE.PlaneGeometry(1.1, 0.02);
-        const lineMaterial = new THREE.MeshBasicMaterial({
-          color: 0x222222,
-          side: THREE.DoubleSide
-        });
-        const line = new THREE.Mesh(lineGeometry, lineMaterial);
-        line.position.set(0, -0.7 + (i * 0.06) - 0.15, 1.02);
-        this.add(line);
+      // Update the tracking intensity in the shader
+      if (eye.trackingIntensity) {
+        eye.trackingIntensity.value = trackingPrecision;
       }
       
-      // Add robot eyes
-      this.eyes = new RobotEyes();
-      this.eyes.position.z = 1;
-      this.eyes.position.y = 0.4;
-      this.add(this.eyes);
-      
-      // Add an antenna on top
-      this.antenna = new Antenna();
-      this.antenna.position.y = 1.25;
-      this.add(this.antenna);
-      
-      // Add ear-like structures
-      const earGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.5);
-      const earMaterial = new THREE.MeshStandardMaterial({
-        color: 0x555555,
-        roughness: 0.4,
-        metalness: 0.8
-      });
-      
-      // Left ear
-      this.leftEar = new THREE.Mesh(earGeometry, earMaterial);
-      this.leftEar.position.set(-1.25, 0.3, 0);
-      this.add(this.leftEar);
-      
-      // Right ear
-      this.rightEar = new THREE.Mesh(earGeometry, earMaterial);
-      this.rightEar.position.set(1.25, 0.3, 0);
-      this.add(this.rightEar);
-      
-      // Add subtle head movement
-      this.headMovement();
-    }
-    
-    headMovement() {
-      // Add subtle idle movement to make the robot feel more alive
-      const duration = 4000;
-      const headRotation = { x: 0, y: 0 };
-      
-      new TWEEN.Tween(headRotation)
-        .to({ 
-          x: THREE.MathUtils.degToRad(2), 
-          y: THREE.MathUtils.degToRad(5) 
-        }, duration)
-        .easing(TWEEN.Easing.Sinusoidal.InOut)
-        .onUpdate(() => {
-          this.rotation.x = headRotation.x;
-          this.rotation.y = headRotation.y;
-        })
-        .yoyo(true)
-        .repeat(Infinity)
-        .start();
-    }
-    
-    update() {
-      this.eyes.update();
-    }
+      // Calculate angle for eye rotation
+      let angle = Math.atan2(eyeLocal.x - eye.position.x, eyeLocal.z - eye.position.z);
+      angle = THREE.MathUtils.clamp(angle, -maxRotation, maxRotation);
+      eye.rotation.y = angle;
+    });
   }
+}
 
-  // Scene setup
+// Robot Antenna
+class Antenna extends THREE.Group {
+  constructor() {
+    super();
+    
+    // Store previous camera position to calculate movement
+    this.lastCameraPosition = new THREE.Vector3();
+    this.wiggleAmount = { x: 0, z: 0 };
+    this.wiggleVelocity = { x: 0, z: 0 };
+    this.damping = 0.92; // Damping factor for wiggle spring effect
+    
+    // Antenna base
+    const baseGeometry = new THREE.CylinderGeometry(0.1, 0.2, 0.3, 8);
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 0; // Position at the bottom, directly on the robot head
+    this.add(base);
+    
+    // Create a group for the rod and tip to rotate together
+    this.antennaTop = new THREE.Group();
+    this.add(this.antennaTop);
+    
+    // Antenna rod
+    const rodGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
+    const rodMaterial = new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+    this.rod = new THREE.Mesh(rodGeometry, rodMaterial);
+    this.rod.position.y = 0.6; // Position relative to antenna top group
+    this.antennaTop.add(this.rod);
+    
+    // Antenna tip light
+    const tipGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+    const tipMaterial = new THREE.MeshStandardMaterial({
+      color: 0xD8829D,
+      emissive: 0xD8829D,
+      emissiveIntensity: 1,
+      roughness: 0.2,
+      metalness: 0.5
+    });
+    this.tip = new THREE.Mesh(tipGeometry, tipMaterial);
+    this.tip.position.y = 1.2; // Position relative to antenna top group
+    this.antennaTop.add(this.tip);
+    
+    // Set the pivot point at the bottom of the rod
+    this.antennaTop.position.y = 0.15; // Just above the base, at the point where it touches the robot
+    
+    // Start the blinking animation for the tip
+    this.blinkTip();
+  }
+  
+  blinkTip() {
+    // Pulse the antenna tip
+    const duration = 1000;
+    const intensity = { value: 1 };
+    
+    new TWEEN.Tween(intensity)
+      .to({ value: 0.2 }, duration)
+      .easing(TWEEN.Easing.Sinusoidal.InOut)
+      .onUpdate(() => {
+        this.tip.material.emissiveIntensity = intensity.value;
+      })
+      .yoyo(true)
+      .repeat(Infinity)
+      .start();
+  }
+  
+  update(camera) {
+    if (!camera) return;
+    
+    // Calculate camera movement delta
+    const cameraPosition = camera.position.clone();
+    if (!this.lastCameraPosition.x) {
+      this.lastCameraPosition.copy(cameraPosition);
+      return;
+    }
+    
+    // Get camera movement speed
+    const deltaX = cameraPosition.x - this.lastCameraPosition.x;
+    const deltaZ = cameraPosition.z - this.lastCameraPosition.z;
+    
+    // Apply forces to the wiggle based on camera movement
+    // Inverse relationship - moving camera right makes antenna bend left
+    this.wiggleVelocity.x -= deltaX * 0.4;
+    this.wiggleVelocity.z -= deltaZ * 0.4;
+    
+    // Update wiggle physics (spring simulation)
+    this.wiggleVelocity.x += -this.wiggleAmount.x * 0.08; // Spring force
+    this.wiggleVelocity.z += -this.wiggleAmount.z * 0.08;
+    
+    // Apply damping
+    this.wiggleVelocity.x *= this.damping;
+    this.wiggleVelocity.z *= this.damping;
+    
+    // Update wiggle position
+    this.wiggleAmount.x += this.wiggleVelocity.x;
+    this.wiggleAmount.z += this.wiggleVelocity.z;
+    
+    // Clamp wiggle to reasonable values - reduced range to prevent clipping
+    this.wiggleAmount.x = THREE.MathUtils.clamp(this.wiggleAmount.x, -0.25, 0.25);
+    this.wiggleAmount.z = THREE.MathUtils.clamp(this.wiggleAmount.z, -0.25, 0.25);
+    
+    // Apply wiggle to the entire top part of the antenna (rod and tip together)
+    // This prevents the ball from clipping through the rod
+    this.antennaTop.rotation.x = this.wiggleAmount.z * 0.5;
+    this.antennaTop.rotation.z = -this.wiggleAmount.x * 0.5;
+    
+    // Store camera position for next frame
+    this.lastCameraPosition.copy(cameraPosition);
+  }
+}
+
+// Robot Head replacing the bird Head
+class RobotHead extends THREE.Group {
+  constructor(camera) {
+    super();
+    this.camera = camera;
+    
+    // Create the main head cube
+    const headGeometry = new THREE.BoxGeometry(2.2, 2.5, 2);
+    const headMaterial = new THREE.MeshStandardMaterial({
+      color: 0x777777,
+      roughness: 0.4,
+      metalness: 0.8,
+    });
+    this.headMesh = new THREE.Mesh(headGeometry, headMaterial);
+    this.add(this.headMesh);
+    
+    // Add some details to the head - panel lines
+    const addDetailPanel = (width, height, depth, x, y, z) => {
+      const geometry = new THREE.BoxGeometry(width, height, depth);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        roughness: 0.5,
+        metalness: 0.9
+      });
+      const panel = new THREE.Mesh(geometry, material);
+      panel.position.set(x, y, z);
+      this.add(panel);
+      return panel;
+    };
+    
+    // Add various panels for detail
+    addDetailPanel(2.3, 0.1, 1.5, 0, 0.8, 0.3);
+    addDetailPanel(2.3, 0.1, 1.5, 0, -0.3, 0.3);
+    addDetailPanel(1.8, 0.05, 2.1, 0, -1.0, 0);
+    
+    // Add a "mouth" grill
+    const grillGeometry = new THREE.PlaneGeometry(1.2, 0.3);
+    const grillMaterial = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      roughness: 0.8,
+      metalness: 0.6,
+      side: THREE.DoubleSide
+    });
+    const grill = new THREE.Mesh(grillGeometry, grillMaterial);
+    grill.position.set(0, -0.7, 1.01);
+    this.add(grill);
+    
+    // Add grill lines
+    for (let i = 0; i < 6; i++) {
+      const lineGeometry = new THREE.PlaneGeometry(1.1, 0.02);
+      const lineMaterial = new THREE.MeshBasicMaterial({
+        color: 0x222222,
+        side: THREE.DoubleSide
+      });
+      const line = new THREE.Mesh(lineGeometry, lineMaterial);
+      line.position.set(0, -0.7 + (i * 0.06) - 0.15, 1.02);
+      this.add(line);
+    }
+    
+    // Add robot eyes
+    this.eyes = new RobotEyes();
+    this.eyes.position.z = 1;
+    this.eyes.position.y = 0.4;
+    this.add(this.eyes);
+    
+    // Add an antenna on top
+    this.antenna = new Antenna();
+    this.antenna.position.y = 1.25;
+    this.add(this.antenna);
+    
+    // Add ear-like structures
+    const earGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.5);
+    const earMaterial = new THREE.MeshStandardMaterial({
+      color: 0x555555,
+      roughness: 0.4,
+      metalness: 0.8
+    });
+    
+    // Left ear
+    this.leftEar = new THREE.Mesh(earGeometry, earMaterial);
+    this.leftEar.position.set(-1.25, 0.3, 0);
+    this.add(this.leftEar);
+    
+    // Right ear
+    this.rightEar = new THREE.Mesh(earGeometry, earMaterial);
+    this.rightEar.position.set(1.25, 0.3, 0);
+    this.add(this.rightEar);
+    
+    // Add subtle head movement
+    this.headMovement();
+  }
+  
+  headMovement() {
+    // Add subtle idle movement to make the robot feel more alive
+    const duration = 4000;
+    const headRotation = { x: 0, y: 0 };
+    
+    new TWEEN.Tween(headRotation)
+      .to({ 
+        x: THREE.MathUtils.degToRad(2), 
+        y: THREE.MathUtils.degToRad(5) 
+      }, duration)
+      .easing(TWEEN.Easing.Sinusoidal.InOut)
+      .onUpdate(() => {
+        this.rotation.x = headRotation.x;
+        this.rotation.y = headRotation.y;
+      })
+      .yoyo(true)
+      .repeat(Infinity)
+      .start();
+  }
+  
+  update() {
+    this.eyes.update();
+    // Pass camera to antenna for wiggle effect
+    this.antenna.update(this.camera);
+  }
+}
+
+// Scene setup
 let scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111122); // Darker blue background for a tech feel
 
@@ -389,40 +447,40 @@ scene.add(robotHead);
 
 // Add UI indicator to show tracking is working
 const addTrackingIndicator = () => {
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.bottom = '20px';
-    container.style.left = '20px';
-    container.style.color = '#00ffaa';
-    container.style.fontFamily = 'Arial, sans-serif';
-    container.style.padding = '10px';
-    container.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    container.style.borderRadius = '5px';
-    container.innerHTML = 'Move your mouse to see the robot eyes tracking!';
-    document.body.appendChild(container);
-    
-    // Fade out after 5 seconds
-    setTimeout(() => {
-      container.style.transition = 'opacity 1s';
-      container.style.opacity = '0';
-      setTimeout(() => container.remove(), 1000);
-    }, 5000);
-  };
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.bottom = '20px';
+  container.style.left = '20px';
+  container.style.color = '#00ffaa';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.padding = '10px';
+  container.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  container.style.borderRadius = '5px';
+  container.innerHTML = 'Move your mouse to see the robot eyes tracking!';
+  document.body.appendChild(container);
   
-  addTrackingIndicator();
+  // Fade out after 5 seconds
+  setTimeout(() => {
+    container.style.transition = 'opacity 1s';
+    container.style.opacity = '0';
+    setTimeout(() => container.remove(), 1000);
+  }, 5000);
+};
+
+addTrackingIndicator();
+
+// Animation loop
+let clock = new THREE.Clock();
+let t = 0;
+
+renderer.setAnimationLoop(() => {
+  let dt = clock.getDelta();
+  t += dt;
   
-  // Animation loop
-  let clock = new THREE.Clock();
-  let t = 0;
+  TWEEN.update();
+  controls.update();
   
-  renderer.setAnimationLoop(() => {
-    let dt = clock.getDelta();
-    t += dt;
-    
-    TWEEN.update();
-    controls.update();
-    
-    robotHead.update();
-    
-    renderer.render(scene, camera);
-  });
+  robotHead.update();
+  
+  renderer.render(scene, camera);
+});
