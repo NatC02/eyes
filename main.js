@@ -386,3 +386,43 @@ scene.add(new THREE.AmbientLight(0x222233, Math.PI * 0.2));
 // Create the robot head
 let robotHead = new RobotHead(camera);
 scene.add(robotHead);
+
+// Add UI indicator to show tracking is working
+const addTrackingIndicator = () => {
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.bottom = '20px';
+    container.style.left = '20px';
+    container.style.color = '#00ffaa';
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.padding = '10px';
+    container.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    container.style.borderRadius = '5px';
+    container.innerHTML = 'Move your mouse to see the robot eyes tracking!';
+    document.body.appendChild(container);
+    
+    // Fade out after 5 seconds
+    setTimeout(() => {
+      container.style.transition = 'opacity 1s';
+      container.style.opacity = '0';
+      setTimeout(() => container.remove(), 1000);
+    }, 5000);
+  };
+  
+  addTrackingIndicator();
+  
+  // Animation loop
+  let clock = new THREE.Clock();
+  let t = 0;
+  
+  renderer.setAnimationLoop(() => {
+    let dt = clock.getDelta();
+    t += dt;
+    
+    TWEEN.update();
+    controls.update();
+    
+    robotHead.update();
+    
+    renderer.render(scene, camera);
+  });
